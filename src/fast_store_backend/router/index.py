@@ -13,19 +13,19 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-#
-# @router.get("/index/data")
-# async def index_list():
-#     topBar_list = await TopBar.all()
-#     default = await TopBar.all().prefetch_related("swpiers").first()  # 默认
-#     return {
-#         "type": "recommendList",
-#         "data": [
-#             {
-#                 "bigUrl": ".../ddd",
-#                 "data": [
-#                     {"imgUrl": "dd"}
-#                 ]
-#             }
-#         ]
-#     }
+
+@router.get("/index/data")
+async def index_list():
+    topBar_list = await TopBar.all()
+    default = await TopBar.all().prefetch_related("swpiers").first()  # 默认
+    return {
+        "type": "recommendList",
+        "data": [
+            {
+                "bigUrl": ".../ddd",
+                "data": [
+                    {"imgUrl": "dd"}
+                ]
+            }
+        ]
+    }
