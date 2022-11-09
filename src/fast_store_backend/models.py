@@ -42,7 +42,7 @@ class Category(Model):
     code = fields.CharField(default="", max_length=30, description="类别code", help_text="类别code")
     desc = fields.TextField(default="", description="类别描述", help_text="类别描述")
     parent = fields.ForeignKeyField("models.Category", related_name="childs", null=True)
-    childs:fields.ForeignKeyNullableRelation['Category']
+    childs: fields.ForeignKeyNullableRelation['Category']
     category_type = fields.IntEnumField(CategoryType, default=CategoryType.first, null=True)
     image = ImageField()
     # 是否放荡首页展示表
@@ -57,10 +57,10 @@ class Goods(Model):
     商品
     """
     category = fields.ForeignKeyField("models.Category", description="商品类目")
-    sn = fields.CharField(max_length=50, default="", description="商品编码")  # 商品编码
+    # sn = fields.CharField(max_length=50, default="", description="商品编码")  # 商品编码
     name = fields.CharField(max_length=30, description="商品名")
     price = fields.IntField()  # 如果是单型号，则取这个值，如果为多型号则取下面的值
-    price_line = fields.IntField()
+    line_price = fields.IntField()
     line_price_min = fields.IntField(default=0)
     line_price_max = fields.IntField(default=0)
     stock_num = fields.IntField(description="库存总量(包含sku)")
@@ -105,7 +105,7 @@ class GoodsSku(Model):
     sku_id = fields.CharField(max_length=255, unique=True, description="商品skuid，由规格id组成")
     goods = fields.ForeignKeyField("models.Goods", )
     preview = fields.CharField(max_length=255, description="预览图")
-    sku_no = fields.CharField(max_length=255, description="商品sku编码")  # 排序用
+    # sku_no = fields.CharField(max_length=255, description="商品sku编码")  # 排序用
     price = fields.IntField()
     line_price = fields.IntField()
     stock_num = fields.IntField(default=0, description="库存量")
