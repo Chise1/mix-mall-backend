@@ -42,6 +42,7 @@ class Category(Model):
     code = fields.CharField(default="", max_length=30, description="类别code", help_text="类别code")
     desc = fields.TextField(default="", description="类别描述", help_text="类别描述")
     parent = fields.ForeignKeyField("models.Category", related_name="childs", null=True)
+    childs:fields.ForeignKeyNullableRelation['Category']
     category_type = fields.IntEnumField(CategoryType, default=CategoryType.first, null=True)
     image = ImageField()
     # 是否放荡首页展示表
@@ -143,6 +144,26 @@ class HotSearchWords(Model):
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
 
 
+class Banner(Model):
+    """
+    轮播的商品
+    """
+    imgUrl = ImageField()
+    background = fields.CharField(max_length=255)
+    goods = fields.ForeignKeyField("models.Goods", description="商品", null=True)
+    add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
+
+
+class Icon(Model):
+    """
+    首页图标
+    """
+    name = fields.CharField(max_length=10)
+    image = ImageField()
+    category = fields.ForeignKeyField("models.Category")
+    add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
+
+
 class TopBar(Model):
     """
     首页分类
@@ -171,16 +192,6 @@ class Recommend(IndexInfo):
 
 class Commdity(IndexInfo):
     topBar = fields.ForeignKeyField("models.TopBar", related_name="commdityList")
-
-
-class Banner(IndexInfo):
-    """
-    轮播的商品
-    """
-    imgUrl = ImageField()
-    background = fields.CharField(max_length=255)
-    goods = fields.ForeignKeyField("models.Goods", description="商品", null=True)
-    add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
 
 
 class Card(IndexInfo):

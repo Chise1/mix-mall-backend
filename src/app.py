@@ -8,7 +8,7 @@ from fast_tmp.conf import settings
 from fast_tmp.factory import create_app
 from fast_store_backend.router import default_router
 from fast_store_backend.admin import CategoryAdmin, GoodsAdmin, CustomerAdmin, DiscussAdmin, \
-    BannerAdmin
+    BannerAdmin, IconAdmin
 
 app = create_app()
 app.title = "fast_store_backend"
@@ -27,7 +27,8 @@ app.add_middleware(
 )
 
 register_tortoise(app, config=settings.TORTOISE_ORM, generate_schemas=True)
-register_model_site({"store": [CategoryAdmin(), GoodsAdmin(), CustomerAdmin(), DiscussAdmin(),BannerAdmin()]})
+register_model_site({"store": [CategoryAdmin(), GoodsAdmin(), CustomerAdmin(), DiscussAdmin(),
+                               BannerAdmin(), IconAdmin()]})
 
 if settings.DEBUG:
     from fast_tmp.admin.register import register_static_service
