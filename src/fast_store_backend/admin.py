@@ -181,7 +181,6 @@ class GoodsAdmin(ModelAdmin):
         """
         缓存goods信息
         """
-        print(data)
         set_cache(data)
         return
         obj = self.model()
