@@ -21,3 +21,5 @@ TORTOISE_ORM = {
     }
 }
 EXTRA_SCRIPT = []  # 自定义执行脚本
+
+PATH = "http://127.0.0.1:8000"

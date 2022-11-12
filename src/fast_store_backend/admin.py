@@ -1,15 +1,21 @@
+import os
 import time
 from typing import Dict, Any, Optional, List
 
 from fast_tmp.amis.column import Column
-from fast_tmp.amis.formitem import TextItem, InputTable, ImageItem, NumberItem, UUIDItem
+from fast_tmp.amis.formitem import TextItem, InputTable, ImageItem, NumberItem, UUIDItem, \
+    RichTextItem
 from fast_tmp.amis.actions import DialogAction
 from fast_tmp.amis.base import _Action
 from fast_tmp.amis.forms import Form
 from fast_tmp.amis.frame import Dialog
+from fast_tmp.conf import settings
 from fast_tmp.responses import BaseRes
+from fast_tmp.utils import remove_media_start
+from fastapi import UploadFile, File
 from tortoise import Model, transactions
 from tortoise.exceptions import ValidationError
+from tortoise.transactions import in_transaction
 
 from fast_store_backend.amis import SubForm
 from fast_tmp.amis.wizard import Wizard, WizardStep
@@ -18,9 +24,9 @@ from starlette.requests import Request
 
 from amis_field import ColorControl
 from fast_store_backend.models import Goods, GoodsSku, GoodsSpec, GoodsImage, Category, \
-    CategoryType, Customer, Discuss, Banner, Icon
+    CategoryType, Customer, Discuss, Banner, Icon, GoodsSpecGroup
 from fast_tmp.site import ModelAdmin
-from fast_tmp.exceptions import FastTmpError, FieldsError
+from fast_tmp.exceptions import FastTmpError
 
 
 class CategoryAdmin(ModelAdmin):
@@ -60,6 +66,10 @@ def set_cache(data):
 
 def get_cache(uuid: str):
     return goods_cache.get(uuid)
+
+
+def pop_cache(uuid: str):
+    return goods_cache.pop(uuid)
 
 
 def clear_cache():
@@ -137,7 +147,6 @@ class GoodsAdmin(ModelAdmin):
                             ),
                             WizardStep(
                                 title="商品库存",
-                                debug=True,
                                 body=[InputTable(
                                     name="sku",
                                     label="sku",
@@ -155,7 +164,15 @@ class GoodsAdmin(ModelAdmin):
                                 )],
                                 initApi=f"get:{self.prefix}/extra/sku?" + "uuid=${uuid}",
                                 initFetch=True,
-                                api=f"post:{self.prefix}/extra/sku",
+                                # api=f"post:{self.prefix}/extra/sku?" + "uuid=${uuid}",
+                            ), WizardStep(
+                                title="商品描述",
+                                body=[RichTextItem(
+                                    name="desc",
+                                    label="商品描述",
+                                    receiver=f"{self.prefix}/extra/desc?" + "uuid=${uuid}",
+                                )],
+                                api=f"post:{self.prefix}/extra/sku?" + "uuid=${uuid}",
                             )
                         ],
                     ),
@@ -183,29 +200,26 @@ class GoodsAdmin(ModelAdmin):
         """
         set_cache(data)
         return
-        obj = self.model()
-        cors = []
-        field_errors = {}
-        for field_name, field in self.get_create_fields().items():
-            try:
-                cor = await field.set_value(request, obj, data.get(field_name))  # 只有create可能有返回协程
-                if cor:
-                    cors.append(cor)
-            except ValidationError as e:
-                field_errors[field_name] = str(e)
-        if field_errors:
-            raise FieldsError(field_errors)
-
-        @transactions.atomic()
-        async def save_all():
-            await obj.save()
-            for cor in cors:
-                await cor
-
-        await save_all()
-        return obj
 
     async def router(self, request: Request, prefix: str, method: str) -> BaseRes:
+        if prefix == "desc":
+            # pip install aiofiles
+            import aiofiles  # type: ignore
+            resource = "Goods"
+            body = await request.form()
+            file = body.get("file")
+            if not os.path.exists(settings.MEDIA_PATH):
+                os.mkdir(settings.MEDIA_PATH)
+            if not os.path.exists(os.path.join(settings.MEDIA_PATH, resource)):
+                os.mkdir(os.path.join(settings.MEDIA_PATH, resource))
+            cwd = os.path.join(settings.MEDIA_PATH, resource, prefix)
+            if not os.path.exists(cwd):
+                os.mkdir(cwd)
+            async with aiofiles.open(os.path.join(cwd, file.filename), "wb") as f:
+                await f.write(await file.read())
+            res_path = f"/{settings.MEDIA_ROOT}/{resource}/{prefix}/{file.filename}"
+            return BaseRes(data={"link": settings.EXTRA_SETTINGS["PATH"] + res_path})
+
         if method == "GET":
             data = get_cache(request.query_params.get("uuid"))
             if not data:
@@ -236,8 +250,55 @@ class GoodsAdmin(ModelAdmin):
                 )
             return BaseRes(data={"sku": ret})
         # 真正的保存数据
-        x = await request.json()
-        print(x)
+        id = request.query_params.get("uuid")
+        pop_cache(id)
+        sku_data = await request.json()
+        if sku_data["spec_type"] == "False":
+            goods = Goods(
+                category_id=sku_data["category"], name=sku_data["name"],
+                price=sku_data['sku'][0]["price"],
+                line_price=sku_data['sku'][0]["line_price"],
+                stock_num=sku_data['sku'][0]["stock_num"],
+                status=True if sku_data["status"] == "True" else False,
+                image=sku_data["image"],
+                spec_type=False,
+                desc=sku_data["desc"]
+            )
+            async with in_transaction() as connection:
+                await goods.save(using_db=connection)
+                images = [GoodsImage(goods=goods, url=remove_media_start(i)) for i in
+                          sku_data["images"].split(",")]
+                await GoodsImage.bulk_create(images)
+        else:
+            line_price = 0
+            price = 0
+            stock_num = 0
+            for sku in sku_data["sku"]:
+                if sku["line_price"] > line_price:
+                    line_price = sku["line_price"]
+                if sku["price"] < price or price == 0:
+                    price = sku["price"]
+                stock_num += sku["stock_num"]
+            goods = Goods(
+                category_id=sku_data["category"], name=sku_data["name"],
+                price=price,
+                line_price=line_price,
+                stock_num=stock_num,
+                status=True if sku_data["status"] == "True" else False,
+                image=sku_data["image"],
+                spec_type=True,
+                desc=sku_data["desc"]
+            )
+            async with in_transaction() as conn:
+                await goods.save(conn)
+                for i in sku_data['spec_group']:
+                    sepc_group = GoodsSpecGroup(goods=goods, name=i['name'])
+                    await sepc_group.save(conn)
+                    specs = [GoodsSpec(spec=sepc_group, value=j['value']) for j in i['spec']]
+                    await GoodsSpec.bulk_create(specs)
+                images = [GoodsImage(goods=goods, url=remove_media_start(i)) for i in
+                          sku_data["images"].split(",")]
+                await GoodsImage.bulk_create(images)
         return BaseRes()
 
 
