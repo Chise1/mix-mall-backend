@@ -107,7 +107,8 @@ class GoodsAdmin(ModelAdmin):
         base_body = [f[i].get_formitem(request) for i in self.base_fields]
         base_body.append(UUIDItem(name="uuid"))
         base_body.append(
-            ImageItem(multiple=True, receiver="GoodsImage/file/url", label="商品图", name="images"))
+            ImageItem(multiple=True, receiver="GoodsImage/file/url", required=True, label="商品图",
+                      name="images"))
         base_body.append(SubForm(
             name="spec_group",
             label="规格组",
@@ -232,7 +233,7 @@ class GoodsAdmin(ModelAdmin):
             async with aiofiles.open(os.path.join(cwd, file.filename), "wb") as f:
                 await f.write(await file.read())
             res_path = f"/{settings.MEDIA_ROOT}/{resource}/{prefix}/{file.filename}"
-            return BaseRes(data={"link": settings.EXTRA_SETTINGS["PATH"] + res_path})
+            return BaseRes(data={"link": res_path})
 
         if method == "GET":
             data = get_cache(request.query_params.get("uuid"))
@@ -270,8 +271,8 @@ class GoodsAdmin(ModelAdmin):
         if sku_data["spec_type"] == "False":
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
-                price=sku_data['sku'][0]["price"]*100,
-                line_price=sku_data['sku'][0]["line_price"]*100,
+                price=sku_data['sku'][0]["price"] * 100,
+                line_price=sku_data['sku'][0]["line_price"] * 100,
                 stock_num=sku_data['sku'][0]["stock_num"],
                 status=True if sku_data["status"] == "True" else False,
                 image=remove_media_start(sku_data["image"]),
@@ -289,9 +290,9 @@ class GoodsAdmin(ModelAdmin):
             stock_num = 0
             for sku in sku_data["sku"]:
                 if sku["line_price"] > line_price:
-                    line_price = sku["line_price"]*100
+                    line_price = sku["line_price"] * 100
                 if sku["price"] < price or price == 0:
-                    price = sku["price"]*100
+                    price = sku["price"] * 100
                 stock_num += sku["stock_num"]
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
@@ -324,7 +325,7 @@ class GoodsAdmin(ModelAdmin):
                                 specList.append(str(j.pk))
                                 break
                     specList.sort()
-                    sku["preview"]=remove_media_start(sku["preview"])
+                    sku["preview"] = remove_media_start(sku["preview"])
                     goods_sku = GoodsSku(specs="__".join(specList), goods=goods, **sku)
                     goods_skus.append(goods_sku)
                 await GoodsSku.bulk_create(goods_skus)
