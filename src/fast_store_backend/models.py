@@ -61,14 +61,12 @@ class Goods(Model):
     name = fields.CharField(max_length=30, description="商品名")
     price = fields.IntField()  # 如果是单型号，则取这个值，如果为多型号则取下面的值
     line_price = fields.IntField()
-    line_price_min = fields.IntField(default=0)
-    line_price_max = fields.IntField(default=0)
     stock_num = fields.IntField(description="库存总量(包含sku)")
     sale_num = fields.IntField(default=0, description="卖出数")  # 卖出数
     page_view = fields.IntField(default=0, description="浏览量")  # 卖出数
     desc = fields.TextField(description="商品详情")  # 富文本使用DjangoUeditor
-    sales_initial = fields.IntField(description="初始销量", default=0)
-    sales_actual = fields.IntField(description="实际销量", default=0)
+    # sales_initial = fields.IntField(description="初始销量", default=0)
+    # sales_actual = fields.IntField(description="实际销量", default=0)
     status = fields.BooleanField(default=False, description="是否上架")
     is_deleted = fields.BooleanField(default=False, description="是否删除")
     # sort = fields.IntField(default=9999, description="排序(数字越小越靠前)")
@@ -86,26 +84,35 @@ class GoodsSpecGroup(Model):
     """
     商品规格组
     """
-    goods = fields.ForeignKeyField("models.Goods", db_constraint=False)
-    name = fields.CharField(max_length=255, description="规格名")
+    goods = fields.ForeignKeyField("models.Goods", unique=True, db_constraint=False,
+                                   related_name="spec_group")
+    name = fields.CharField(max_length=255, description="规格名", )
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
+
+    def __str__(self):
+        return self.name
 
 
 class GoodsSpec(Model):
     """商品规格值"""
     spec = fields.ForeignKeyField("models.GoodsSpecGroup", related_name="valueList")
+    goods = fields.ForeignKeyField("models.Goods", unique=True, db_constraint=False,
+                                   related_name="specs")
     value = fields.CharField(max_length=255, description="规格值")
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
+
+    def __str__(self):
+        return self.value
 
 
 class GoodsSku(Model):
     """
     商品sku
     """
-    sku_id = fields.CharField(max_length=255, unique=True, description="商品skuid，由规格id组成")
-    goods = fields.ForeignKeyField("models.Goods", )
-    preview = fields.CharField(max_length=255, description="预览图")
-    # sku_no = fields.CharField(max_length=255, description="商品sku编码")  # 排序用
+    specs = fields.CharField(max_length=255, unique=True, description="商品skuid，由规格id组成")
+    goods = fields.ForeignKeyField("models.Goods", related_name="skus")
+    preview = ImageField(max_length=255, description="预览图")
+    sku_no = fields.IntField(default=1, description="商品sku编码")  # 排序用
     price = fields.IntField()
     line_price = fields.IntField()
     stock_num = fields.IntField(default=0, description="库存量")
@@ -117,7 +124,7 @@ class GoodsSku(Model):
 
     @property
     def spec_value(self):
-        return [int(i) for i in self.sku_id.split("_")]
+        return [int(i) for i in self.specs.split("_")]
 
 
 class GoodsImage(Model):
@@ -215,6 +222,7 @@ class Discuss(Model):
     评价
     """
     customer = fields.ForeignKeyField("models.Customer", related_name="discusses")
+    nickName = fields.CharField(max_length=128)  # 绑定customer的名字
     goods = fields.ForeignKeyField("models.Goods", description="商品")
     remark = fields.TextField()
     attr = fields.CharField(max_length=255, null=True)

@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from typing import Dict, Any, Optional, List
@@ -12,9 +13,7 @@ from fast_tmp.amis.frame import Dialog
 from fast_tmp.conf import settings
 from fast_tmp.responses import BaseRes
 from fast_tmp.utils import remove_media_start
-from fastapi import UploadFile, File
-from tortoise import Model, transactions
-from tortoise.exceptions import ValidationError
+from tortoise import Model
 from tortoise.transactions import in_transaction
 
 from fast_store_backend.amis import SubForm
@@ -22,11 +21,13 @@ from fast_tmp.amis.wizard import Wizard, WizardStep
 from fast_tmp.site.field import Password
 from starlette.requests import Request
 
-from amis_field import ColorControl
+from amis_field import ColorControl, MoneyControl
 from fast_store_backend.models import Goods, GoodsSku, GoodsSpec, GoodsImage, Category, \
     CategoryType, Customer, Discuss, Banner, Icon, GoodsSpecGroup
 from fast_tmp.site import ModelAdmin
 from fast_tmp.exceptions import FastTmpError
+
+logger = logging.getLogger(__file__)
 
 
 class CategoryAdmin(ModelAdmin):
@@ -69,7 +70,10 @@ def get_cache(uuid: str):
 
 
 def pop_cache(uuid: str):
-    return goods_cache.pop(uuid)
+    try:
+        goods_cache.pop(uuid)
+    except KeyError as e:
+        logger.error("cache can not found:" + str(e))
 
 
 def clear_cache():
@@ -83,17 +87,20 @@ class GoodsAdmin(ModelAdmin):
     model = Goods
     list_display = (
         "name", "spec_type", "price", "line_price", "stock_num", "sale_num", "page_view",
-        "sales_actual",
         "status",
         "image"
     )
     base_fields = (  # 创建项目第一步的字段
         "category", "name", "spec_type", "status", "image")
     create_fields = (
-        "category", "name", "spec_type", "price", "line_price", "sales_initial", "stock_num",
+        "category", "name", "spec_type", "price", "line_price", "stock_num",
         "sale_num", "page_view",
-        "sales_actual", "status", "image", "is_deleted", "desc")
+        "status", "image", "is_deleted", "desc")
     update_fields = create_fields
+    fields = {
+        "price": MoneyControl,
+        "line_price": MoneyControl
+    }
 
     def get_create_dialogation_button(self, request: Request) -> List[_Action]:
         f = self.get_create_fields()
@@ -133,6 +140,13 @@ class GoodsAdmin(ModelAdmin):
                 ]
             )
         ))
+        price = f["price"].get_formitem(request)
+        price.mode = "inline"
+        line_price = f["line_price"].get_formitem(request)
+        line_price.mode = "inline"
+        stock_num = f["stock_num"].get_formitem(request)
+        stock_num.mode = "inline"
+
         return [
             DialogAction(
                 label="新增商品",
@@ -157,9 +171,9 @@ class GoodsAdmin(ModelAdmin):
                                             label="封面(单规格勿传)", name="preview",
                                             receiver="GoodsSku/file/preview", required=False
                                         ),
-                                        f["price"].get_formitem(request),
-                                        f["line_price"].get_formitem(request),
-                                        f["stock_num"].get_formitem(request),
+                                        price,
+                                        line_price,
+                                        stock_num,
                                     ]
                                 )],
                                 initApi=f"get:{self.prefix}/extra/sku?" + "uuid=${uuid}",
@@ -256,11 +270,11 @@ class GoodsAdmin(ModelAdmin):
         if sku_data["spec_type"] == "False":
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
-                price=sku_data['sku'][0]["price"],
-                line_price=sku_data['sku'][0]["line_price"],
+                price=sku_data['sku'][0]["price"]*100,
+                line_price=sku_data['sku'][0]["line_price"]*100,
                 stock_num=sku_data['sku'][0]["stock_num"],
                 status=True if sku_data["status"] == "True" else False,
-                image=sku_data["image"],
+                image=remove_media_start(sku_data["image"]),
                 spec_type=False,
                 desc=sku_data["desc"]
             )
@@ -275,9 +289,9 @@ class GoodsAdmin(ModelAdmin):
             stock_num = 0
             for sku in sku_data["sku"]:
                 if sku["line_price"] > line_price:
-                    line_price = sku["line_price"]
+                    line_price = sku["line_price"]*100
                 if sku["price"] < price or price == 0:
-                    price = sku["price"]
+                    price = sku["price"]*100
                 stock_num += sku["stock_num"]
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
@@ -285,7 +299,7 @@ class GoodsAdmin(ModelAdmin):
                 line_price=line_price,
                 stock_num=stock_num,
                 status=True if sku_data["status"] == "True" else False,
-                image=sku_data["image"],
+                image=remove_media_start(sku_data["image"]),
                 spec_type=True,
                 desc=sku_data["desc"]
             )
@@ -294,11 +308,26 @@ class GoodsAdmin(ModelAdmin):
                 for i in sku_data['spec_group']:
                     sepc_group = GoodsSpecGroup(goods=goods, name=i['name'])
                     await sepc_group.save(conn)
-                    specs = [GoodsSpec(spec=sepc_group, value=j['value']) for j in i['spec']]
+                    specs = [GoodsSpec(goods=goods, spec=sepc_group, value=j['value']) for j in
+                             i['spec']]
                     await GoodsSpec.bulk_create(specs)
                 images = [GoodsImage(goods=goods, url=remove_media_start(i)) for i in
                           sku_data["images"].split(",")]
                 await GoodsImage.bulk_create(images)
+                specs = await GoodsSpec.filter(goods=goods)
+                goods_skus = []
+                for sku in sku_data["sku"]:
+                    specList = []
+                    for i in sku.pop("spec").split("__"):
+                        for j in specs:
+                            if j.value == i:
+                                specList.append(str(j.pk))
+                                break
+                    specList.sort()
+                    sku["preview"]=remove_media_start(sku["preview"])
+                    goods_sku = GoodsSku(specs="__".join(specList), goods=goods, **sku)
+                    goods_skus.append(goods_sku)
+                await GoodsSku.bulk_create(goods_skus)
         return BaseRes()
 
 
@@ -314,7 +343,7 @@ class CustomerAdmin(ModelAdmin):
 
 class DiscussAdmin(ModelAdmin):
     model = Discuss
-    list_display = ("customer", "goods", "remark", "attr")
+    list_display = ("customer", "nickName", "goods", "remark", "attr")
     create_fields = list_display
     update_fields = create_fields
 
