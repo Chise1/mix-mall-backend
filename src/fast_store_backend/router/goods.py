@@ -144,7 +144,7 @@ async def get_goods_detail(
     """
     获取商品细节
     """
-    ret = {}
+    ret = {"favorite":False}
     await asyncio.gather(  # 同步执行
         add_page_view(id, ret, customer, background_tasks),
         get_goods(ret, id),
