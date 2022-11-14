@@ -7,11 +7,18 @@
 @Software: PyCharm
 @info    :
 """
+import asyncio
+import time
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from fastapi import BackgroundTasks
+from tortoise.expressions import F
 
-from fast_store_backend.models import Discuss, Goods, GoodsSpecGroup, GoodsSku
+from fast_store_backend.depends import get_customer_or_none
+from fast_store_backend.models import Discuss, Goods, GoodsSpecGroup, GoodsSku, Customer, \
+    GoodsHistory
 
 router = APIRouter(prefix="/goods", tags=["goods"])
 
@@ -23,17 +30,56 @@ async def get_goods_list():
     ]
 
 
-@router.get("/detail/{id}")
-async def get_goods_detail(id: int):
+async def add_history(history: Optional[GoodsHistory], customer: Optional[Customer], goods_id: int):
     """
-    获取细节
+    增加记录
+    :param history:
+    :param customer:
+    :return:
     """
-    goods = await Goods.filter(pk=id, status=True).prefetch_related("images").first()
+    if history:
+        history.add_time = datetime.now()
+        await history.save()
+    else:
+        if customer:
+            await GoodsHistory.create(
+                goods_id=goods_id,
+                customer=customer,
+                add_time=datetime.now()
+            )
+    await Goods.filter(pk=goods_id).update(page_view=F("page_view") + 1)
 
-    ret = {
-        "id": id,
+
+async def add_page_view(goods_id: int, ret: dict, customer: Optional[Customer],
+                        background_tasks: BackgroundTasks):
+    if customer:
+        history = await GoodsHistory.filter(goods_id=goods_id, customer=customer).first()
+        if history:
+            ret['favorite'] = history.favorite
+        background_tasks.add_task(add_history, history, customer, goods_id)
+    else:
+        background_tasks.add_task(add_history, None, customer, goods_id)
+
+
+async def get_remark(ret: dict, goods_id: int):
+    remark = await Discuss.filter(goods_id=goods_id).first()
+    if remark:
+        remark_total = await Discuss.filter(goods_id=goods_id).count()
+        ret["remark"] = {
+            "total": remark_total,
+            "id": remark.pk,
+            "name": remark.nickName,
+            "remark": remark.remark,
+            "attr": remark.attr,
+            "add_time": remark.add_time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+
+async def get_goods(ret: dict, goods_id: int):
+    goods = await Goods.filter(pk=goods_id, status=True).prefetch_related("images").first()
+    ret.update(**{
+        "id": goods_id,
         "name": goods.name,
-        "favorite": True,  # 是否已经收藏
         "spec_type": goods.spec_type,  # 商品规格，单规格还是多规格
         "price": goods.price / 100,  # 热销产品折后价格
         "line_price": goods.line_price / 100,
@@ -46,19 +92,7 @@ async def get_goods_detail(id: int):
             {"id": i.id,
              "url": i.url} for i in goods.images],
         "image": goods.image
-    }
-
-    remark = await Discuss.filter(goods=goods).first()
-    if remark:
-        remark_total = await Discuss.filter(goods=goods).count()
-        ret["remark"] = {
-            "total": remark_total,
-            "id": remark.pk,
-            "name": remark.nickName,
-            "remark": remark.remark,
-            "attr": remark.attr,
-            "add_time": remark.add_time.strftime("%Y-%m-%d %H:%M:%S")
-        }
+    })
     if goods.spec_type:
         spec_group = await GoodsSpecGroup.filter(goods=goods).prefetch_related("valueList")
         skus = await GoodsSku.filter(goods=goods)
@@ -98,6 +132,24 @@ async def get_goods_detail(id: int):
              "spec_value": [0]
              }
         ]
+
+
+# fixme: 可以作为教程
+@router.get("/detail/{id}")
+async def get_goods_detail(
+    id: int,
+    background_tasks: BackgroundTasks,
+    customer: Optional[Customer] = Depends(get_customer_or_none),
+):
+    """
+    获取商品细节
+    """
+    ret = {}
+    await asyncio.gather(  # 同步执行
+        add_page_view(id, ret, customer, background_tasks),
+        get_goods(ret, id),
+        get_remark(ret, id)
+    )
     return ret
 
 

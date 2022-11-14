@@ -4,17 +4,37 @@ from fast_tmp.contrib.tortoise.fields import ImageField
 
 
 class Customer(Model):
-    username = fields.CharField(max_length=128, unique=True)
-    password = fields.CharField(max_length=255)
-    nickName = fields.CharField(max_length=128)
-    phone = fields.CharField(32)
-    imgUrl = ImageField()
+    nickName = fields.CharField(max_length=128, null=True)
+    gender = fields.BooleanField(default=False)  # false 为男 true为女
+    language = fields.CharField(max_length=128, null=True)
+    city = fields.CharField(max_length=128, null=True)
+    province = fields.CharField(max_length=128, null=True)
+    country = fields.CharField(max_length=128, null=True)
+    mobile = fields.CharField(max_length=32, null=True)
+    avatarUrl = fields.CharField(max_length=255, null=True)
     token = fields.CharField(max_length=255, null=True)
-    provider = fields.CharField(max_length=255, null=True)  # 供应商？
-    openid = fields.CharField(max_length=255, null=True)
+    provider = fields.CharField(max_length=255, null=True)  # 供应商？小程序？
+    openid = fields.CharField(max_length=255, unique=True)
+    session_key = fields.CharField(max_length=255)
 
     def __str__(self):
         return self.nickName
+
+    def set_password(self, raw_password: str):
+        """
+        设置密码
+        """
+        from fast_tmp.contrib.auth.hashers import make_password
+
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password: str) -> bool:
+        """
+        验证密码
+        """
+        from fast_tmp.contrib.auth.hashers import check_password
+
+        return check_password(raw_password, self.password)
 
 
 class Address(Model):
@@ -227,3 +247,17 @@ class Discuss(Model):
     remark = fields.TextField()
     attr = fields.CharField(max_length=255, null=True)
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
+
+
+class GoodsHistory(Model):
+    """
+    浏览历史记录
+    """
+    goods = fields.ForeignKeyField("models.Goods", db_constraint=False, related_name="history")
+    customer = fields.ForeignKeyField("models.Customer", db_constraint=False,
+                                      related_name="history")
+    add_time = fields.DatetimeField(description="浏览时间")
+    favorite = fields.BooleanField(default=False, description="收藏")
+
+    class Meta:
+        unique_together = (("goods", "customer"),)

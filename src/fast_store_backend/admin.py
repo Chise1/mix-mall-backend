@@ -13,7 +13,8 @@ from fast_tmp.amis.frame import Dialog
 from fast_tmp.conf import settings
 from fast_tmp.responses import BaseRes
 from fast_tmp.utils import remove_media_start
-from tortoise import Model
+from pydantic import ValidationError
+from tortoise import Model, transactions
 from tortoise.transactions import in_transaction
 
 from fast_store_backend.amis import SubForm
@@ -25,7 +26,7 @@ from amis_field import ColorControl, MoneyControl
 from fast_store_backend.models import Goods, GoodsSku, GoodsSpec, GoodsImage, Category, \
     CategoryType, Customer, Discuss, Banner, Icon, GoodsSpecGroup
 from fast_tmp.site import ModelAdmin
-from fast_tmp.exceptions import FastTmpError
+from fast_tmp.exceptions import FastTmpError, FieldsError
 
 logger = logging.getLogger(__file__)
 
@@ -277,7 +278,8 @@ class GoodsAdmin(ModelAdmin):
                 status=True if sku_data["status"] == "True" else False,
                 image=remove_media_start(sku_data["image"]),
                 spec_type=False,
-                desc=sku_data["desc"].replace("../media",settings.EXTRA_SETTINGS["PATH"]+"/media")
+                desc=sku_data["desc"].replace("../media",
+                                              settings.EXTRA_SETTINGS["PATH"] + "/media")
             )
             async with in_transaction() as connection:
                 await goods.save(using_db=connection)
@@ -334,9 +336,9 @@ class GoodsAdmin(ModelAdmin):
 
 class CustomerAdmin(ModelAdmin):
     model = Customer
-    list_display = ("nickName", "username", "phone", "imgUrl",)
-    create_fields = ("nickName", "username", "password", "phone", "imgUrl",)
-    update_fields = ("nickName", "username", "password", "phone", "imgUrl",)
+    list_display = ("nickName", "mobile", "avatarUrl",)
+    create_fields = ("nickName", "mobile", "avatarUrl",)
+    update_fields = ("nickName", "mobile", "avatarUrl",)
     fields = {
         "password": Password
     }

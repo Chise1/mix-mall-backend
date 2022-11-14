@@ -37,4 +37,4 @@ if settings.DEBUG:
 if __name__ == "__main__":
     import uvicorn  # type:ignore
 
-    uvicorn.run(app, port=8000, lifespan="on")
+    uvicorn.run(app,host="0.0.0.0", port=8000, lifespan="on")
