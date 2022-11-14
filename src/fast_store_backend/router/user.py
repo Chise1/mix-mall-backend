@@ -48,7 +48,7 @@ async def get_user_view_history(customer: Customer = Depends(get_customer_or_non
     获取客户浏览历史记录
     """
     if not customer:
-        return {}
+        return []
     return await Goods.filter(history__customer=customer).order_by("-history__add_time").limit(
         10).values("id", "name", "image", "history__add_time")
 
