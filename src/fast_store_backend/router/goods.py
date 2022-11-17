@@ -70,7 +70,7 @@ async def get_remark(ret: dict, goods_id: int):
             "id": remark.pk,
             "name": remark.nickName,
             "remark": remark.remark,
-            "attr": remark.attr,
+            "attrs": remark.attrs,
             "add_time": remark.add_time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
@@ -81,8 +81,8 @@ async def get_goods(ret: dict, goods_id: int):
         "id": goods_id,
         "name": goods.name,
         "spec_type": goods.spec_type,  # 商品规格，单规格还是多规格
-        "price": goods.price / 100,  # 热销产品折后价格
-        "line_price": goods.line_price / 100,
+        "price": goods.price ,  # 热销产品折后价格
+        "line_price": goods.line_price ,
         "stock_num": goods.stock_num,  # 总库存
         "sale_num": goods.sale_num,  # 总销量
         "page_view": goods.page_view,  # 浏览量
@@ -111,7 +111,8 @@ async def get_goods(ret: dict, goods_id: int):
              "stock_num": sku.stock_num,
              "preview": sku.preview,
              "preview_id": None,  # 如果没有preview从这里读取，然后进行判断。
-             "spec_value": [int(i) for i in sku.specs.split("__")]
+             "spec_value": [int(i) for i in sku.specs.split("__")],
+             "attrs":sku.attrs
              }
             for sku in skus
         ]

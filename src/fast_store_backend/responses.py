@@ -7,8 +7,9 @@
 @Software: PyCharm
 @info    :商城默认返回结果
 """
-from typing import Any
+from typing import Any, Dict, Optional
 
+from fastapi import HTTPException
 from pydantic import BaseModel
 
 
@@ -18,3 +19,7 @@ class StoreRes(BaseModel):
     """
     code: str = '0'
     data: Any
+
+
+class ErrInfo(HTTPException):
+    pass

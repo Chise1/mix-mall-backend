@@ -1,7 +1,8 @@
+import uuid
 from typing import Optional
 
 from tortoise import Model, fields
-from enum import IntEnum
+from enum import IntEnum, Enum
 from fast_tmp.contrib.tortoise.fields import ImageField
 
 
@@ -44,7 +45,7 @@ class Address(Model):
     mobile = fields.CharField(max_length=32)
     province = fields.CharField(max_length=32, description="省")
     city = fields.CharField(max_length=32, description="市")
-    district = fields.CharField(max_length=32, description="区")
+    district = fields.CharField(max_length=32, description="区/县")
     address = fields.CharField(max_length=255, description="详细地址")
     isDefault = fields.BooleanField(description="是否为默认地址", default=False)
     customer = fields.ForeignKeyField("models.Customer", related_name="addresses")
@@ -81,8 +82,8 @@ class Goods(Model):
     category = fields.ForeignKeyField("models.Category", description="商品类目")
     # sn = fields.CharField(max_length=50, default="", description="商品编码")  # 商品编码
     name = fields.CharField(max_length=30, description="商品名")
-    price = fields.IntField()  # 如果是单型号，则取这个值，如果为多型号则取下面的值
-    line_price = fields.IntField()
+    price = fields.FloatField()  # 如果是单型号，则取这个值，如果为多型号则取下面的值
+    line_price = fields.FloatField()
     stock_num = fields.IntField(description="库存总量(包含sku)")
     sale_num = fields.IntField(default=0, description="卖出数")  # 卖出数
     page_view = fields.IntField(default=0, description="浏览量")  # 卖出数
@@ -136,8 +137,8 @@ class GoodsSku(Model):
     goods = fields.ForeignKeyField("models.Goods", related_name="skus")
     preview = ImageField(max_length=255, description="预览图")
     sku_no = fields.IntField(default=1, description="商品sku编码")  # 排序用
-    price = fields.IntField()
-    line_price = fields.IntField()
+    price = fields.FloatField()
+    line_price = fields.FloatField()
     stock_num = fields.IntField(default=0, description="库存量")
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
     up_time = fields.DatetimeField(auto_now=True, description="更新时间")
@@ -191,52 +192,6 @@ class Icon(Model):
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
 
 
-class TopBar(Model):
-    """
-    首页分类
-    """
-    name = fields.CharField(max_length=32)
-    add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
-
-
-class IndexInfo(Model):
-    goods = fields.ForeignKeyField("models.Goods", description="商品")
-    imgUrl = fields.CharField(max_length=255, description="轮播图片")
-    index = fields.IntField(default=0, description="轮播顺序")
-    add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
-
-    class Meta:
-        abstract = True
-
-
-class Swiper(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="swiperList")
-
-
-class Recommend(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="recommendList")
-
-
-class Commdity(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="commdityList")
-
-
-class Card(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="cardList")
-
-
-class Hot(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="hotList")
-
-
-class Shop(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="shopList")
-
-
-class Icons(IndexInfo):
-    topBar = fields.ForeignKeyField("models.TopBar", related_name="icons")
-
-
 class Discuss(Model):
     """
     评价
@@ -245,7 +200,7 @@ class Discuss(Model):
     nickName = fields.CharField(max_length=128)  # 绑定customer的名字
     goods = fields.ForeignKeyField("models.Goods", description="商品")
     remark = fields.TextField()
-    attr = fields.CharField(max_length=255, null=True)
+    attrs = fields.CharField(max_length=255, null=True)
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
 
 
@@ -275,4 +230,63 @@ class Cart(Model):
     add_time = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = (("sku", "customer"),)
+        unique_together = (("goods", "sku", "customer"),)
+
+
+class OrderSub(Model):
+    """
+    订单子项
+    """
+    order = fields.ForeignKeyField(
+        "models.Order", related_name="goodsList", description="订单"
+    )
+    goods: Goods = fields.ForeignKeyField("models.Goods", db_constraint=False)
+    sku: Optional[GoodsSku] = fields.ForeignKeyField(
+        "models.GoodsSku", db_constraint=False, null=True)
+    price = fields.FloatField()
+    preview = fields.CharField(max_length=255, description="商品图片")
+    name = fields.CharField(max_length=255, description="商品名")
+    attrs = fields.CharField(max_length=255, description="商品attrs")
+    number = fields.IntField(default=0, description="数量")
+    add_time = fields.DatetimeField(auto_now_add=True)
+    stock_num = fields.IntField(default=0, description="库存量")
+
+
+class OrderState(IntEnum):
+    """
+    订单状态
+    """
+    notpay = 1  # 待支付
+    unreceipted = 2  # 待发货
+    receipted = 3  # 待收货
+    discuss = 4  # 待评价
+    cancel = 9  # 取消订单
+    # todo 退货流程？？
+
+
+class LogisticsType(IntEnum):
+    """
+    配送方式
+    0=无需配送 1=快递 2=商家 3=同城 4=自提
+    """
+    not_need = 0
+    courier = 1
+    merchant = 2
+    intra_city = 3
+    customer_self = 4
+
+def get_trade_no():
+    return str(uuid.uuid4()).replace("-","")
+class Order(Model):
+    """
+    订单
+    """
+    trade_no = fields.CharField(default=get_trade_no,max_length=32,unique=True, description="订单号")
+    customer = fields.ForeignKeyField("models.Customer", db_constraint=False)
+    price = fields.FloatField(description="总的支付金额")
+    state = fields.IntEnumField(OrderState, default=OrderState.notpay, description="订单状态")
+    pay_no = fields.CharField(null=True, max_length=128, description="支付流水号")
+    logistics_type = fields.IntEnumField(LogisticsType, default=LogisticsType.not_need)
+    remark = fields.CharField(max_length=255, description="备注")
+    add_time = fields.DatetimeField(auto_now_add=True)
+    address = fields.JSONField()

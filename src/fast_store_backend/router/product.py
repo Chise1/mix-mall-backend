@@ -62,7 +62,7 @@ async def get_goods(category_id:Optional[int]=None,next: Optional[int] = None, f
 
 
 @router.get("/icons")
-async def icons():
+async def icons(request:Request):
     return await Icon.all()
 
 

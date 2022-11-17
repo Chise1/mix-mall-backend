@@ -71,10 +71,11 @@ async def add_cart(cartinfo: CartAdd, customer: Customer = Depends(get_customer)
     """
     加入购物车
     """
-    cart = await Cart.filter(sku_id=cartinfo.sku_id, customer=customer).first()
+    cart = await Cart.filter(goods_id=cartinfo.goods_id, sku_id=cartinfo.sku_id,
+                             customer=customer).first()
     if not cart:
         cart = Cart(goods_id=cartinfo.goods_id, sku_id=cartinfo.sku_id, customer=customer)
-    cart.number += 1
+    cart.number += cartinfo.number
     await cart.save()
 
 

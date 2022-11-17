@@ -22,7 +22,7 @@ from fast_tmp.amis.wizard import Wizard, WizardStep
 from fast_tmp.site.field import Password
 from starlette.requests import Request
 
-from amis_field import ColorControl, MoneyControl
+from amis_field import ColorControl
 from fast_store_backend.models import Goods, GoodsSku, GoodsSpec, GoodsImage, Category, \
     CategoryType, Customer, Discuss, Banner, Icon, GoodsSpecGroup
 from fast_tmp.site import ModelAdmin
@@ -98,10 +98,6 @@ class GoodsAdmin(ModelAdmin):
         "sale_num", "page_view",
         "status", "image", "is_deleted", "desc")
     update_fields = create_fields
-    fields = {
-        "price": MoneyControl,
-        "line_price": MoneyControl
-    }
 
     def get_create_dialogation_button(self, request: Request) -> List[_Action]:
         f = self.get_create_fields()
@@ -272,8 +268,8 @@ class GoodsAdmin(ModelAdmin):
         if sku_data["spec_type"] == "False":
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
-                price=sku_data['sku'][0]["price"] * 100,
-                line_price=sku_data['sku'][0]["line_price"] * 100,
+                price=sku_data['sku'][0]["price"] ,
+                line_price=sku_data['sku'][0]["line_price"] ,
                 stock_num=sku_data['sku'][0]["stock_num"],
                 status=True if sku_data["status"] == "True" else False,
                 image=remove_media_start(sku_data["image"]),
@@ -292,9 +288,9 @@ class GoodsAdmin(ModelAdmin):
             stock_num = 0
             for sku in sku_data["sku"]:
                 if sku["line_price"] > line_price:
-                    line_price = sku["line_price"] * 100
+                    line_price = sku["line_price"]
                 if sku["price"] < price or price == 0:
-                    price = sku["price"] * 100
+                    price = sku["price"]
                 stock_num += sku["stock_num"]
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
@@ -346,7 +342,7 @@ class CustomerAdmin(ModelAdmin):
 
 class DiscussAdmin(ModelAdmin):
     model = Discuss
-    list_display = ("customer", "nickName", "goods", "remark", "attr")
+    list_display = ("customer", "nickName", "goods", "remark", "attrs")
     create_fields = list_display
     update_fields = create_fields
 
@@ -389,6 +385,6 @@ class GoodsImageAdmin(ModelAdmin):
 
 class GoodsSkuAdmin(ModelAdmin):
     model = GoodsSku
-    list_display = ("goods", "preview", "price", "line_price", "stock_num",)
+    list_display = ( "preview","goods","attrs", "price", "line_price", "stock_num",)
     create_fields = list_display
     update_fields = list_display
