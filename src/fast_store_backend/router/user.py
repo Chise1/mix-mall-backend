@@ -36,10 +36,11 @@ async def userinfo(customer: Customer = Depends(get_customer)):
     """
     读取客户信息
     """
-    ret = dict(customer)
-    ret.pop("password")
-    ret.pop("username")
-    return ret
+    return {
+        "nickName": customer.nickName,
+        "gender": customer.gender,
+        "avatarUrl": customer.avatarUrl,
+    }
 
 
 @router.get("/view_history")
@@ -65,11 +66,13 @@ async def wechat_login(request: Request, code: str):
             return JSONResponse(content={"msg": data["errmsg"], "status": 400},
                                 status_code=status.HTTP_400_BAD_REQUEST)
         customer = await Customer.filter(openid=openid).first()
+        if customer and customer.nickName:
+            return {"token": create_token(customer), "registered": True}
         if not customer:
             customer = Customer(**data)
             await customer.save()
             return {"token": create_token(customer), "registered": False}
-        return {"token": create_token(customer), "registered": True}
+        return {"token": create_token(customer), "registered": False}
 
 
 @router.post("/userInfo")

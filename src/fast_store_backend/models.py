@@ -1,3 +1,5 @@
+from typing import Optional
+
 from tortoise import Model, fields
 from enum import IntEnum
 from fast_tmp.contrib.tortoise.fields import ImageField
@@ -130,15 +132,13 @@ class GoodsSku(Model):
     商品sku
     """
     specs = fields.CharField(max_length=255, unique=True, description="商品skuid，由规格id组成")
+    attrs = fields.CharField(max_length=255, description="商品attrs")
     goods = fields.ForeignKeyField("models.Goods", related_name="skus")
     preview = ImageField(max_length=255, description="预览图")
     sku_no = fields.IntField(default=1, description="商品sku编码")  # 排序用
     price = fields.IntField()
     line_price = fields.IntField()
     stock_num = fields.IntField(default=0, description="库存量")
-    # 减少查询商品的时候的查询次数？
-    # sku_props = fields.CharField(max_length=255, description="SKU的规格属性(json格式)")
-    # sepc_values = fields.CharField(max_length=255, description="规格值ID集(json格式)")
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
     up_time = fields.DatetimeField(auto_now=True, description="更新时间")
 
@@ -261,3 +261,18 @@ class GoodsHistory(Model):
 
     class Meta:
         unique_together = (("goods", "customer"),)
+
+
+class Cart(Model):
+    """
+    购物车
+    """
+    goods: Goods = fields.ForeignKeyField("models.Goods", db_constraint=False)
+    sku: Optional[GoodsSku] = fields.ForeignKeyField(
+        "models.GoodsSku", db_constraint=False, null=True)
+    number = fields.IntField(default=0, description="数量")
+    customer = fields.ForeignKeyField("models.Customer", db_constraint=False)
+    add_time = fields.DatetimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (("sku", "customer"),)

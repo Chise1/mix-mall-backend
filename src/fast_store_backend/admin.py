@@ -168,7 +168,7 @@ class GoodsAdmin(ModelAdmin):
                                     label="sku",
                                     needConfirm=False,
                                     columns=[
-                                        Column(label="spec", name="spec"),
+                                        Column(label="规格", name="attrs", ),
                                         ImageItem(
                                             label="封面(单规格勿传)", name="preview",
                                             receiver="GoodsSku/file/preview", required=False
@@ -246,7 +246,7 @@ class GoodsAdmin(ModelAdmin):
             sepc_type = data[0]["spec_type"]
             if sepc_type != "True":
                 return BaseRes(
-                    data={"sku": [{"spec": "-", "preview": None, "price": 0, "line_price": 0,
+                    data={"sku": [{"attrs": "-", "preview": None, "price": 0, "line_price": 0,
                                    "stock_num": 0}]})
 
             def g(obj, tags, index) -> List[str]:
@@ -262,7 +262,7 @@ class GoodsAdmin(ModelAdmin):
             ret = []
             for sku in g("", spec_group, 0):
                 ret.append(
-                    {"spec": sku, "preview": None, "price": 0, "line_price": 0, "stock_num": 0}
+                    {"attrs": sku, "preview": None, "price": 0, "line_price": 0, "stock_num": 0}
                 )
             return BaseRes(data={"sku": ret})
         # 真正的保存数据
@@ -321,7 +321,7 @@ class GoodsAdmin(ModelAdmin):
                 goods_skus = []
                 for sku in sku_data["sku"]:
                     specList = []
-                    for i in sku.pop("spec").split("__"):
+                    for i in sku.pop("attrs").split("__"):
                         for j in specs:
                             if j.value == i:
                                 specList.append(str(j.pk))

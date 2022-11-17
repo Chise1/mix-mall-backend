@@ -224,7 +224,7 @@ typer = "^0.6.1"
 type = "git"
 url = "https://github.com/Chise1/fast-tmp.git"
 reference = "dev"
-resolved_reference = "22f46689721087690561937f083f5d7029ed110a"
+resolved_reference = "50004014bfb8fede5b3fb9d32f53edac09a057e3"
 
 [[package]]
 name = "fastapi"
