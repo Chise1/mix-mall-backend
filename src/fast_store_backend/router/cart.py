@@ -1,15 +1,16 @@
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from fast_store_backend.dantic_model import CartGoods, CartAdd
 from fast_store_backend.depends import get_customer
 from fast_store_backend.models import Customer, Cart
 
-router = APIRouter(prefix="/cart")
+router = APIRouter(prefix="/cart", tags=["购物车"])
 
 
-@router.get("/cart")
+@router.get("/goods", response_model=List[CartGoods])
 async def get_cart(customer: Customer = Depends(get_customer)):
     """
     购物车
@@ -22,57 +23,55 @@ async def get_cart(customer: Customer = Depends(get_customer)):
                 "goods": {
                     "id": cart.goods.pk,
                     "image": cart.sku.preview,
-                    "attr_val": cart.sku.attrs,
-                    "title": cart.goods.name,
+                    "attrs": cart.sku.attrs,
+                    "name": cart.goods.name,
                     "price": cart.sku.price,
+                    "line_price": cart.sku.line_price,
+                    "sku_id": cart.sku.pk
                 },
                 "number": cart.number,
-                "id": cart.id
+                "id": cart.pk
             })
         else:
             ret.append({
                 "goods": {
                     "id": cart.goods.pk,
                     "image": cart.goods.image,
-                    "attr_val": "-",
-                    "title": cart.goods.name,
+                    "attrs": "-",
+                    "name": cart.goods.name,
                     "price": cart.goods.price,
+                    "line_price": cart.goods.line_price,
+                    "sku_id": None
                 },
                 "number": cart.number,
-                "id": cart.id
+                "id": cart.pk
             })
     return ret
 
 
-@router.delete("/clear")
+@router.delete("/goods/clear")
 async def clear_cart(customer: Customer = Depends(get_customer)):
     """
     清空购物车
     """
-    await  Cart.filter(customer=customer).delete()
+    await Cart.filter(customer=customer).delete()
 
 
-@router.delete("/remove")
+@router.delete("/goods/remove")
 async def remove_cart(cart_id: int, customer: Customer = Depends(get_customer)):
     """
     删除购物车商品
     """
-    await Cart.filter(pk=cart_id).delete()
+    await Cart.filter(pk=cart_id, customer=customer).delete()
 
 
-class CartAdd(BaseModel):
-    goods_id: int
-    sku_id: Optional[int]
-    number: int
-
-
-@router.post("/cart")
+@router.post("/goods")
 async def add_cart(cartinfo: CartAdd, customer: Customer = Depends(get_customer)):
     """
     加入购物车
     """
-    cart = await Cart.filter(goods_id=cartinfo.goods_id, sku_id=cartinfo.sku_id,
-                             customer=customer).first()
+    cart = await Cart.filter(
+        goods_id=cartinfo.goods_id, sku_id=cartinfo.sku_id, customer=customer).first()
     if not cart:
         cart = Cart(goods_id=cartinfo.goods_id, sku_id=cartinfo.sku_id, customer=customer)
     cart.number += cartinfo.number

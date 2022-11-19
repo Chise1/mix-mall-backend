@@ -205,26 +205,24 @@ reference = "aliyun"
 
 [[package]]
 name = "fast-tmp"
-version = "1.1.1"
+version = "1.1.2"
 description = "fastapi tortoise amis admin"
 category = "main"
 optional = false
-python-versions = "^3.8"
-develop = false
+python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-asgiref = "^3.5.2"
-fastapi = "^0.85.0"
-python-jose = "^3.3.0"
-python-multipart = "^0.0.5"
-tortoise-orm = "^0.19.2"
-typer = "^0.6.1"
+asgiref = ">=3.5.2,<4.0.0"
+fastapi = ">=0.85.0,<0.86.0"
+python-jose = ">=3.3.0,<4.0.0"
+python-multipart = ">=0.0.5,<0.0.6"
+tortoise-orm = ">=0.19.2,<0.20.0"
+typer = ">=0.6.1,<0.7.0"
 
 [package.source]
-type = "git"
-url = "https://github.com/Chise1/fast-tmp.git"
-reference = "dev"
-resolved_reference = "50004014bfb8fede5b3fb9d32f53edac09a057e3"
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "fastapi"
@@ -608,7 +606,7 @@ reference = "aliyun"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "a33b019d65b45739f40292c9c2667a3658a2777f8769b23f15dc85260bd029f5"
+content-hash = "76e610a396da0f5eb8bff29185c43189f30e105d9fd49fd00ff85f4ffde34ba5"
 
 [metadata.files]
 aiofiles = [
@@ -744,7 +742,10 @@ ecdsa = [
     {file = "ecdsa-0.18.0-py2.py3-none-any.whl", hash = "sha256:80600258e7ed2f16b9aa1d7c295bd70194109ad5a30fdee0eaeefef1d4c559dd"},
     {file = "ecdsa-0.18.0.tar.gz", hash = "sha256:190348041559e21b22a1d65cee485282ca11a6f81d503fddb84d5017e9ed1e49"},
 ]
-fast-tmp = []
+fast-tmp = [
+    {file = "fast-tmp-1.1.2.tar.gz", hash = "sha256:7e0a7b0f892562554f10e6635cc10634cb7970633e8f8d640a46709b48103898"},
+    {file = "fast_tmp-1.1.2-py3-none-any.whl", hash = "sha256:48c46508474167b73071e1f075e352b61e9875e2c54010138810bbf6506851de"},
+]
 fastapi = [
     {file = "fastapi-0.85.2-py3-none-any.whl", hash = "sha256:6292db0edd4a11f0d938d6033ccec5f706e9d476958bf33b119e8ddb4e524bde"},
     {file = "fastapi-0.85.2.tar.gz", hash = "sha256:3e10ea0992c700e0b17b6de8c2092d7b9cd763ce92c49ee8d4be10fee3b2f367"},

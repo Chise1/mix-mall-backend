@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 
 from fast_tmp.amis.column import Column
 from fast_tmp.amis.formitem import TextItem, InputTable, ImageItem, NumberItem, UUIDItem, \
-    RichTextItem
+    RichTextItem, SubForm
 from fast_tmp.amis.actions import DialogAction
 from fast_tmp.amis.base import _Action
 from fast_tmp.amis.forms import Form
@@ -13,20 +13,18 @@ from fast_tmp.amis.frame import Dialog
 from fast_tmp.conf import settings
 from fast_tmp.responses import BaseRes
 from fast_tmp.utils import remove_media_start
-from pydantic import ValidationError
-from tortoise import Model, transactions
+from tortoise import Model
 from tortoise.transactions import in_transaction
 
-from fast_store_backend.amis import SubForm
 from fast_tmp.amis.wizard import Wizard, WizardStep
-from fast_tmp.site.field import Password
 from starlette.requests import Request
 
 from amis_field import ColorControl
+from fast_store_backend.amis import HttpImage
 from fast_store_backend.models import Goods, GoodsSku, GoodsSpec, GoodsImage, Category, \
     CategoryType, Customer, Discuss, Banner, Icon, GoodsSpecGroup
 from fast_tmp.site import ModelAdmin
-from fast_tmp.exceptions import FastTmpError, FieldsError
+from fast_tmp.exceptions import FastTmpError
 
 logger = logging.getLogger(__file__)
 
@@ -268,8 +266,8 @@ class GoodsAdmin(ModelAdmin):
         if sku_data["spec_type"] == "False":
             goods = Goods(
                 category_id=sku_data["category"], name=sku_data["name"],
-                price=sku_data['sku'][0]["price"] ,
-                line_price=sku_data['sku'][0]["line_price"] ,
+                price=sku_data['sku'][0]["price"],
+                line_price=sku_data['sku'][0]["line_price"],
                 stock_num=sku_data['sku'][0]["stock_num"],
                 status=True if sku_data["status"] == "True" else False,
                 image=remove_media_start(sku_data["image"]),
@@ -332,11 +330,10 @@ class GoodsAdmin(ModelAdmin):
 
 class CustomerAdmin(ModelAdmin):
     model = Customer
-    list_display = ("nickName", "mobile", "avatarUrl",)
-    create_fields = ("nickName", "mobile", "avatarUrl",)
-    update_fields = ("nickName", "mobile", "avatarUrl",)
+    list_display = ("avatarUrl", "nickName", "mobile")
+    methods = ("list","delete")
     fields = {
-        "password": Password
+        "avatarUrl": HttpImage
     }
 
 
@@ -385,6 +382,6 @@ class GoodsImageAdmin(ModelAdmin):
 
 class GoodsSkuAdmin(ModelAdmin):
     model = GoodsSku
-    list_display = ( "preview","goods","attrs", "price", "line_price", "stock_num",)
+    list_display = ("preview", "goods", "attrs", "price", "line_price", "stock_num",)
     create_fields = list_display
     update_fields = list_display

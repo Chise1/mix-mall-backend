@@ -13,9 +13,10 @@ from tortoise.expressions import F
 from tortoise.query_utils import Prefetch
 
 from fast_store_backend.common import place_order
+from fast_store_backend.dantic_model import CreateOrderInfo
 from fast_store_backend.depends import get_customer, get_customer_or_none, create_token
 from fast_store_backend.models import Customer, Goods, Address, GoodsHistory, GoodsSku, Order, \
-    OrderSub, OrderState
+    OrderSub, OrderState, Cart
 from tortoise.transactions import in_transaction
 
 from fast_store_backend.responses import ErrInfo
@@ -107,8 +108,7 @@ async def wechat_login(request: Request, code: str):
 async def update_userInfo(request: Request, customer: Customer = Depends(get_customer)):
     data = await request.json()  # {'nickName': '微信用户', 'gender': 0, 'language': '', 'city': '', 'province': '', 'country': '', 'avatarUrl': 'https://thirdwx.qlogo.cn/mmopen/vi_32/POgEwh4mIHO4nibH0KlMECNjjGxQUq24ZEaGT4poC6icRiccVGKSyXwibcPq4BWmiaIGuG1icwxaQX6grC9VemZoJ8rg/132'}
     customer.nickName = data["nickName"]
-    await customer.update_from_dict(data)
-    return
+    await Customer.filter(pk=customer.pk).update(**data)
 
 
 @router.post("/favorite")
@@ -118,21 +118,6 @@ async def favorite(goods_id: int, favorite: bool, customer: Customer = Depends(g
     """
     await GoodsHistory.filter(goods_id=goods_id, customer=customer).update(favorite=favorite)
     return {"favorite": favorite}
-
-
-class OrderGoodsInfo(BaseModel):
-    sku_id: int
-    goods_id: int
-    num: int
-
-
-class CreateOrderInfo(BaseModel):
-    """
-    创建订单
-    """
-    address: dict  # todo
-    goodsList: List[OrderGoodsInfo]
-    remark: str
 
 
 @router.post("/order")
@@ -145,8 +130,11 @@ async def create_order(orderinfo: CreateOrderInfo, customer: Customer = Depends(
     err_info = ""
     price = 0
     ordersub = []
+    cartList = []
     for i in orderinfo.goodsList:
-        if i.sku_id == 0:
+        if i.cart_id:
+            cartList.append(i.cart_id)
+        if not i.sku_id:
             goods = await Goods.filter(pk=i.goods_id).first()
             if not goods or goods.spec_type:
                 raise ErrInfo(status_code=400, detail="数据错误")
@@ -186,6 +174,8 @@ async def create_order(orderinfo: CreateOrderInfo, customer: Customer = Depends(
         address=orderinfo.address
     )
     async with in_transaction() as conn:
+        if len(cartList) > 0:
+            await Cart.filter(pk__in=cartList, customer=customer).using_db(conn).delete()
         for i in ordersub:
             stock_num = i.stock_num
             while True:  # 乐观锁
@@ -278,7 +268,7 @@ async def order_pay(request: Request, order_id: int, customer: Customer = Depend
     """
     ip = request.headers.get("host").split(":")[0]
     order = await Order.filter(pk=order_id, customer=customer).prefetch_related(
-        "goodsValues").first()
+        "goodsList").first()
     if not order:
         raise ErrInfo(status_code=400, detail="找不到订单")
     pre_pay_res = await place_order(  # todo 增加错误处理

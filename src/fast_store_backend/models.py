@@ -7,14 +7,17 @@ from fast_tmp.contrib.tortoise.fields import ImageField
 
 
 class Customer(Model):
-    nickName = fields.CharField(max_length=128, null=True)
-    gender = fields.BooleanField(default=False)  # false 为男 true为女
-    language = fields.CharField(max_length=128, null=True)
-    city = fields.CharField(max_length=128, null=True)
-    province = fields.CharField(max_length=128, null=True)
-    country = fields.CharField(max_length=128, null=True)
-    mobile = fields.CharField(max_length=32, null=True)
-    avatarUrl = fields.CharField(max_length=255, null=True)
+    """
+    客户
+    """
+    nickName = fields.CharField(max_length=128, null=True, description="昵称")
+    gender = fields.BooleanField(default=False, description="性别(false 为男 true为女)")
+    language = fields.CharField(max_length=128, null=True, description="语言")
+    city = fields.CharField(max_length=128, null=True, description="城市")
+    province = fields.CharField(max_length=128, null=True, description="省")
+    country = fields.CharField(max_length=128, null=True, description="国家")
+    mobile = fields.CharField(max_length=32, null=True, description="手机号")
+    avatarUrl = fields.CharField(max_length=255, null=True, description="头像")
     token = fields.CharField(max_length=255, null=True)
     provider = fields.CharField(max_length=255, null=True)  # 供应商？小程序？
     openid = fields.CharField(max_length=255, unique=True)
@@ -23,26 +26,13 @@ class Customer(Model):
     def __str__(self):
         return self.nickName
 
-    def set_password(self, raw_password: str):
-        """
-        设置密码
-        """
-        from fast_tmp.contrib.auth.hashers import make_password
-
-        self.password = make_password(raw_password)
-
-    def check_password(self, raw_password: str) -> bool:
-        """
-        验证密码
-        """
-        from fast_tmp.contrib.auth.hashers import check_password
-
-        return check_password(raw_password, self.password)
-
 
 class Address(Model):
-    name = fields.CharField(max_length=32)
-    mobile = fields.CharField(max_length=32)
+    """
+    地址
+    """
+    name = fields.CharField(max_length=32,description="姓名")
+    mobile = fields.CharField(max_length=32,description="电话")
     province = fields.CharField(max_length=32, description="省")
     city = fields.CharField(max_length=32, description="市")
     district = fields.CharField(max_length=32, description="区/县")
@@ -64,8 +54,8 @@ class Category(Model):
     name = fields.CharField(default="", max_length=30, description="类别名", help_text="类别名")
     code = fields.CharField(default="", max_length=30, description="类别code", help_text="类别code")
     desc = fields.TextField(default="", description="类别描述", help_text="类别描述")
-    parent = fields.ForeignKeyField("models.Category", related_name="childs", null=True)
-    childs: fields.ForeignKeyNullableRelation['Category']
+    parent = fields.ForeignKeyField("models.Category", related_name="children", null=True)
+    children: fields.ReverseRelation['Category']
     category_type = fields.IntEnumField(CategoryType, default=CategoryType.first, null=True)
     image = ImageField()
     # 是否放荡首页展示表
@@ -275,13 +265,16 @@ class LogisticsType(IntEnum):
     intra_city = 3
     customer_self = 4
 
+
 def get_trade_no():
-    return str(uuid.uuid4()).replace("-","")
+    return str(uuid.uuid4()).replace("-", "")
+
+
 class Order(Model):
     """
     订单
     """
-    trade_no = fields.CharField(default=get_trade_no,max_length=32,unique=True, description="订单号")
+    trade_no = fields.CharField(default=get_trade_no, max_length=32, unique=True, description="订单号")
     customer = fields.ForeignKeyField("models.Customer", db_constraint=False)
     price = fields.FloatField(description="总的支付金额")
     state = fields.IntEnumField(OrderState, default=OrderState.notpay, description="订单状态")
