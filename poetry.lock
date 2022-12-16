@@ -196,7 +196,7 @@ idna = ">=2.0.0"
 
 [[package]]
 name = "fast-tmp"
-version = "1.1.3"
+version = "1.1.4"
 description = "fastapi tortoise amis admin"
 category = "main"
 optional = false
@@ -643,7 +643,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "cff950e3a72f25256c5599e00369d142f475df9fd64cc33733ff14d1f8416df7"
+content-hash = "7bc07fe1ae3ecb5077d78a546a587cb8a560bdea83c8327ecf2a89337bb9b161"
 
 [metadata.files]
 aiofiles = []

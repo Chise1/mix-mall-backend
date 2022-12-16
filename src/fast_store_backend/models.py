@@ -57,7 +57,7 @@ class Category(Model):
     parent = fields.ForeignKeyField("models.Category", related_name="children", null=True)
     children: fields.ReverseRelation['Category']
     category_type = fields.IntEnumField(CategoryType, default=CategoryType.first, null=True)
-    image = ImageField()
+    image = ImageField(description="商品类别图片")
     # 是否放荡首页展示表
     add_time = fields.DatetimeField(auto_now_add=True, description="添加时间")
 

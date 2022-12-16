@@ -6,6 +6,8 @@ services:
       - ./static/:/app/static
       - ./media/:/app/media
     container_name: web
+    depends_on:
+      - mysql
     environment:
       DB_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/fast_store_backend # 类似：mysql://root:123@mysql:3306/fast_store_backend
       PATH: ${PATH} # 服务器地址，
@@ -23,14 +25,13 @@ services:
     image: nginx:1.21.6-alpine
     restart: always
     container_name: nginx
+    depends_on:
+      - web
     environment:
       - TZ=Asia/Shanghai
     ports:
       - "443:443"
     volumes:
       - ./nginx/conf.d/:/etc/nginx/conf.d/
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/logs:/var/log/nginx
-      - ./site:/usr/share/nginx/html
-      - ./nginx/letsencrypt:/etc/letsencrypt
       - ./nginx/vjoy.vip_nginx:/etc/nginx/ssl
