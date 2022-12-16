@@ -1,7 +1,6 @@
-from typing import Optional, List
+from typing import List
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 
 from fast_store_backend.dantic_model import CartGoods, CartAdd
 from fast_store_backend.depends import get_customer
