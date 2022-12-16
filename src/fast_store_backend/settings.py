@@ -7,7 +7,7 @@ DEBUG = True
 
 TORTOISE_ORM = {
     "connections": {
-        "default": "sqlite://fast_store_backend.sqlite3",
+        "default": os.getenv('DB_URL') or "sqlite://fast_store_backend.sqlite3",
     },
     'apps': {
         'fast_tmp': {

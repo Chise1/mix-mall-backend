@@ -1,8 +1,8 @@
-FROM python:3.8-slim
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-2022-12-12
+MAINTAINER Chise1
 ENV POETRY_VIRTUALENVS_CREATE=false
-RUN mkdir -p /src
-WORKDIR /src
-RUN pip3 install -i poetry  https://pypi.tuna.tsinghua.edu.cn/simple
-COPY pyproject.toml poetry.lock /src/
+RUN mkdir -p /app
+WORKDIR /app
+COPY pyproject.toml poetry.lock /app/
 RUN poetry install
-COPY ./src /src
+COPY ./src /app

@@ -272,8 +272,8 @@ class GoodsAdmin(ModelAdmin):
                 status=True if sku_data["status"] == "True" else False,
                 image=remove_media_start(sku_data["image"]),
                 spec_type=False,
-                desc=sku_data["desc"].replace("../media",
-                                              settings.EXTRA_SETTINGS["PATH"] + "/media")
+                desc=sku_data["desc"].replace(
+                    "../media", settings.EXTRA_SETTINGS["PATH"] + "/media")
             )
             async with in_transaction() as connection:
                 await goods.save(using_db=connection)
@@ -331,7 +331,7 @@ class GoodsAdmin(ModelAdmin):
 class CustomerAdmin(ModelAdmin):
     model = Customer
     list_display = ("avatarUrl", "nickName", "mobile")
-    methods = ("list","delete")
+    methods = ("list", "delete")
     fields = {
         "avatarUrl": HttpImage
     }

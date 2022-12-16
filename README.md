@@ -1,2 +1,3 @@
 基于fastapi+tortoise-orm的微信商城小程序后台
 开发中
+部署的时候将.env_default重命名为.env
