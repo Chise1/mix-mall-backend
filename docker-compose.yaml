@@ -28,8 +28,7 @@ services:
     depends_on:
       - web
     environment:
-      - TZ=Asia/Shanghai
-      - DOMAIN_NAME=${DOMAIN_NAME}
+      TZ: Asia/Shanghai
     ports:
       - "443:443"
     volumes:
