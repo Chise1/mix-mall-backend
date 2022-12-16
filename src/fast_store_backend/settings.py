@@ -22,7 +22,7 @@ TORTOISE_ORM = {
 }
 EXTRA_SCRIPT = []  # 自定义执行脚本
 
-PATH = "http://127.0.0.1:8000"
+PATH =   f"http://{os.getenv('DOMAIN_NAME')}" if os.getenv('DOMAIN_NAME') else "http://127.0.0.1:8000"
 WECHAT_SECRET = "123"
 WECHAT_APPID = "123"
 WECHAT_MCHID = "123"
