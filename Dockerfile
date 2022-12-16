@@ -4,6 +4,6 @@ ENV POETRY_VIRTUALENVS_CREATE=false
 RUN pip3 install poetry -i https://pypi.tuna.tsinghua.edu.cn/simple
 RUN mkdir -p /app
 WORKDIR /app
-COPY pyproject.toml /app/
+COPY pyproject.toml poetry.lock /app/
 RUN poetry install
 COPY ./src /app
