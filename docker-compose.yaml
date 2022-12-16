@@ -34,4 +34,4 @@ services:
     volumes:
       - ./nginx/conf.d/:/etc/nginx/conf.d/
       - ./nginx/logs:/var/log/nginx
-      - ./nginx/vjoy.vip_nginx:/etc/nginx/ssl
+      - ./nginx/ssl:/etc/nginx/ssl
