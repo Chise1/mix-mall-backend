@@ -85,6 +85,7 @@ async def get_user_view_history(customer: Customer = Depends(get_customer_or_non
 
 @router.get("/loginByWeixin")
 async def wechat_login(request: Request, code: str):
+    print( f"https://api.weixin.qq.com/sns/jscode2session?appid={settings.EXTRA_SETTINGS['WECHAT_APPID']}&secret={settings.EXTRA_SETTINGS['WECHAT_SECRET']}&js_code={code}&grant_type=authorization_code")
     async with aiohttp.ClientSession() as session:
         response = await session.get(
             f"https://api.weixin.qq.com/sns/jscode2session?appid={settings.EXTRA_SETTINGS['WECHAT_APPID']}&secret={settings.EXTRA_SETTINGS['WECHAT_SECRET']}&js_code={code}&grant_type=authorization_code")
