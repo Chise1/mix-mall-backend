@@ -1,8 +1,7 @@
 import json
 import time
 import uuid
-import logging
-from typing import Optional, List
+from typing import Optional
 import aiohttp
 from fast_tmp.conf import settings
 from fastapi.responses import JSONResponse
@@ -11,7 +10,6 @@ from pydantic import BaseModel
 from starlette import status
 from starlette.requests import Request
 from tortoise.expressions import F
-from tortoise.query_utils import Prefetch
 
 from fast_store_backend.common import place_order
 from fast_store_backend.dantic_model import CreateOrderInfo
@@ -24,7 +22,6 @@ from fast_store_backend.responses import ErrInfo
 from fast_store_backend.utils import sign
 
 router = APIRouter(prefix="/user")
-logger=logging.getLogger(__file__)
 
 @router.get("/addresses")
 async def get_address(customer: Customer = Depends(get_customer)):
@@ -89,7 +86,6 @@ async def get_user_view_history(customer: Customer = Depends(get_customer_or_non
 
 @router.get("/loginByWeixin")
 async def wechat_login(request: Request, code: str):
-    logger.warn( f"https://api.weixin.qq.com/sns/jscode2session?appid={settings.EXTRA_SETTINGS['WECHAT_APPID']}&secret={settings.EXTRA_SETTINGS['WECHAT_SECRET']}&js_code={code}&grant_type=authorization_code")
     async with aiohttp.ClientSession() as session:
         response = await session.get(
             f"https://api.weixin.qq.com/sns/jscode2session?appid={settings.EXTRA_SETTINGS['WECHAT_APPID']}&secret={settings.EXTRA_SETTINGS['WECHAT_SECRET']}&js_code={code}&grant_type=authorization_code")
