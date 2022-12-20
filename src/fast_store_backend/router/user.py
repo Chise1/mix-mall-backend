@@ -65,11 +65,14 @@ async def userinfo(customer: Customer = Depends(get_customer)):
     """
     读取客户信息
     """
-    return {
-        "nickName": customer.nickName,
-        "gender": customer.gender,
-        "avatarUrl": customer.avatarUrl,
-    }
+    if customer.nickName:
+        return {
+            "nickName": customer.nickName,
+            "gender": customer.gender,
+            "avatarUrl": customer.avatarUrl,
+        }
+    else:
+        raise ErrInfo(status_code=400, detail="未注册")
 
 
 @router.get("/view_history")
@@ -95,7 +98,8 @@ async def wechat_login(request: Request, code: str):
                                 status_code=status.HTTP_400_BAD_REQUEST)
         customer = await Customer.filter(openid=openid).first()
         if customer and customer.nickName:
-            return {"token": create_token(customer), "registered": True}
+            return {"token": create_token(customer), "customer": customer.dict(),
+                    "registered": True}
         if not customer:
             customer = Customer(**data)
             await customer.save()

@@ -11,7 +11,7 @@ class Customer(Model):
     客户
     """
     nickName = fields.CharField(max_length=128, null=True, description="昵称")
-    gender = fields.BooleanField(default=False, description="性别(false 为男 true为女)")
+    gender = fields.IntField(default=0, description="性别(false 为男 true为女)")
     language = fields.CharField(max_length=128, null=True, description="语言")
     city = fields.CharField(max_length=128, null=True, description="城市")
     province = fields.CharField(max_length=128, null=True, description="省")
