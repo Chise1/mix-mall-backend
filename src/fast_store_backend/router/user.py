@@ -87,10 +87,9 @@ async def get_user_view_history(customer: Customer = Depends(get_customer_or_non
 async def wechat_login(request: Request, code: str):
     async with aiohttp.ClientSession() as session:
         response = await session.get(
-            f"https://api.weixin.qq.com/sns/jscode2session?appid=wx833cac1c9bdff8b1&secret=23fa3107719720aeda71b2b3441bfe66&js_code={code}&grant_type=authorization_code")
+            f"https://api.weixin.qq.com/sns/jscode2session?appid={settings.EXTRA_SETTINGS['WECHAT_APPID']}&secret={settings.EXTRA_SETTINGS['WECHAT_SECRET']}&js_code={code}&grant_type=authorization_code")
         data = json.loads(await response.text())
         openid = data.get("openid")
-        print(data)
         if not openid:
             return JSONResponse(content={"msg": data["errmsg"], "status": 400},
                                 status_code=status.HTTP_400_BAD_REQUEST)
