@@ -1,10 +1,10 @@
 import logging
 import os
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Iterable
 
 from fast_tmp.amis.column import Column
-from fast_tmp.amis.formitem import TextItem, InputTable, ImageItem, NumberItem, UUIDItem, \
+from fast_tmp.amis.formitem import TextItem, InputTable, ImageItem, UUIDItem, \
     RichTextItem, SubForm
 from fast_tmp.amis.actions import DialogAction
 from fast_tmp.amis.base import _Action
@@ -97,9 +97,9 @@ class GoodsAdmin(ModelAdmin):
         "status", "image", "is_deleted", "desc")
     update_fields = create_fields
 
-    def get_create_dialogation_button(self, request: Request) -> List[_Action]:
+    def get_create_dialogation_button(self, request: Request, codenames: Iterable[str]) -> List[_Action]:
         f = self.get_create_fields()
-        base_body = [f[i].get_formitem(request) for i in self.base_fields]
+        base_body = [f[i].get_formitem(request,codenames) for i in self.base_fields]
         base_body.append(UUIDItem(name="uuid"))
         base_body.append(
             ImageItem(multiple=True, receiver="GoodsImage/file/url", required=True, label="商品图",
@@ -136,11 +136,11 @@ class GoodsAdmin(ModelAdmin):
                 ]
             )
         ))
-        price = f["price"].get_formitem(request)
+        price = f["price"].get_formitem(request,codenames)
         price.mode = "inline"
-        line_price = f["line_price"].get_formitem(request)
+        line_price = f["line_price"].get_formitem(request,codenames)
         line_price.mode = "inline"
-        stock_num = f["stock_num"].get_formitem(request)
+        stock_num = f["stock_num"].get_formitem(request,codenames)
         stock_num.mode = "inline"
 
         return [
@@ -192,17 +192,17 @@ class GoodsAdmin(ModelAdmin):
         ]
 
     async def select_options(
-        self,
-        request: Request,
-        name: str,
-        pk: Optional[str],
-        perPage: Optional[int],
-        page: Optional[int],
+            self,
+            request: Request,
+            name: str,
+            pk: Optional[str],
+            perPage: Optional[int],
+            page: Optional[int],
     ) -> List[Dict[str, str]]:
         if name == "category":
-            return await self.selct_defs[name](request, pk, perPage, page,
+            return await self.select_defs[name](request, pk, perPage, page,
                                                {"category_type": CategoryType.third})
-        return await self.selct_defs[name](request, pk, perPage, page, None)
+        return await self.select_defs[name](request, pk, perPage, page, None)
 
     async def create(self, request: Request, data: Dict[str, Any]) -> Model:
         """
@@ -359,16 +359,16 @@ class IconAdmin(ModelAdmin):
     update_fields = list_display
 
     async def select_options(
-        self,
-        request: Request,
-        name: str,
-        pk: Optional[str],
-        perPage: Optional[int],
-        page: Optional[int],
+            self,
+            request: Request,
+            name: str,
+            pk: Optional[str],
+            perPage: Optional[int],
+            page: Optional[int],
     ) -> List[Dict[str, str]]:
         if name == "category":
             res = await Category.filter(parent=None)
-            return [{"label": i.name, "value": i.id} for i in res]
+            return [{"label": i.name, "value": i.pk} for i in res]
         else:
             return await super().select_options(request, name, pk, perPage, page)
 

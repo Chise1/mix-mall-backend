@@ -1,0 +1,2 @@
+[tool.fast-tmp]
+tortoise_orm = "fast_store_backend.settings"
